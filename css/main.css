@@ -1,0 +1,84 @@
+/* ===================================================================
+   SANĀTANA DHARMA · 3D COSMIC TIMELINE
+   Strict Color Palette: Black, White, and Sacred Saffron (#FF7700)
+   =================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Cinzel:wght@400;600;700;800&family=Outfit:wght@300;400;500;600&display=swap');
+
+:root {
+  /* Strict 3-Color Tokens */
+  --bg-black: #060608;
+  --surface-black: #0E0E12;
+  --surface-card: #15151C;
+  --border-dark: #242430;
+
+  --pure-white: #FFFFFF;
+  --text-white: #F6F6F2;
+  --text-muted: #B4B4AC;
+
+  --saffron-primary: #FF7700;
+  --saffron-bright: #FF9933;
+  --saffron-dark: #D45500;
+  --saffron-glow: rgba(255, 119, 0, 0.45);
+  --saffron-soft: rgba(255, 119, 0, 0.12);
+
+  /* Typography */
+  --font-serif: 'Cinzel', Georgia, serif;
+  --font-display: 'Cinzel Decorative', Georgia, serif;
+  --font-sans: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+
+  /* Transitions */
+  --ease-cosmic: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: var(--bg-black);
+  color: var(--text-white);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  user-select: none;
+}
+
+/* Cosmic Canvas Container */
+#canvas-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--surface-black);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-dark);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--saffron-primary);
+}
+
+/* Sacred Glow Elements */
+.saffron-glow {
+  box-shadow: 0 0 25px var(--saffron-glow);
+}
+
+.saffron-border {
+  border: 1px solid var(--saffron-primary);
+}
