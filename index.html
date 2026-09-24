@@ -944,6 +944,7 @@ html, body {
   justify-content: space-between;
   padding: 20px 28px;
   border-bottom: 1px solid var(--border-dark);
+  flex-shrink: 0;
 }
 
 .drawer-badges { display: flex; align-items: center; gap: 8px; }
@@ -977,14 +978,39 @@ html, body {
   padding: 6px;
   border-radius: 50%;
   transition: all 0.2s ease;
+  flex-shrink: 0;
 }
 
 .drawer-close-btn:hover { color: #fff; transform: rotate(90deg); }
 
 .drawer-scroll-body {
-  flex-grow: 1;
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: 100%;
   overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  overscroll-behavior-y: contain;
   padding: 28px;
+  pointer-events: auto;
+}
+
+/* Custom Visible Glowing Scrollbar for info card */
+.drawer-scroll-body::-webkit-scrollbar {
+  width: 7px;
+}
+.drawer-scroll-body::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 4px;
+}
+.drawer-scroll-body::-webkit-scrollbar-thumb {
+  background: var(--saffron-primary);
+  border-radius: 4px;
+  border: 1px solid rgba(255, 179, 71, 0.35);
+}
+.drawer-scroll-body::-webkit-scrollbar-thumb:hover {
+  background: var(--saffron-bright);
 }
 
 .drawer-title {
@@ -1412,6 +1438,9 @@ html, body {
     width: 100% !important;
     max-width: 100% !important;
     height: 88vh !important;
+    max-height: 88vh !important;
+    height: 88dvh !important;
+    max-height: 88dvh !important;
     top: auto !important;
     bottom: 0 !important;
     left: 0 !important;
@@ -1421,6 +1450,10 @@ html, body {
     border-radius: 20px 20px 0 0 !important;
     transform: translateY(100%) !important;
     box-shadow: 0 -10px 40px rgba(0,0,0,0.92) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+    touch-action: pan-y !important;
   }
 
   .modal-drawer.open {
@@ -1434,22 +1467,31 @@ html, body {
     background: rgba(255, 255, 255, 0.35);
     border-radius: 2px;
     margin: 10px auto 2px auto;
-    flex-shrink: 0;
+    flex-shrink: 0 !important;
   }
 
   .drawer-header {
     padding: 10px 16px;
+    flex-shrink: 0 !important;
   }
 
   .drawer-close-btn {
     width: 42px;
     height: 42px;
     padding: 8px;
+    flex-shrink: 0 !important;
   }
 
   .drawer-scroll-body {
-    padding: 14px 16px calc(24px + var(--safe-bottom)) 16px;
-    -webkit-overflow-scrolling: touch;
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+    touch-action: pan-y !important;
+    overscroll-behavior-y: contain !important;
+    padding: 14px 16px calc(36px + var(--safe-bottom)) 16px !important;
+    pointer-events: auto !important;
   }
 
   .drawer-title {
@@ -3569,6 +3611,17 @@ class SacredModalViewer {
     document.getElementById('modal-backdrop').addEventListener('click', () => this.close());
     const handle = document.getElementById('drawer-drag-handle');
     if (handle) handle.addEventListener('click', () => this.close());
+
+    // Isolate scrolling inside modal so wheel and touch gestures smoothly scroll the card without affecting 3D scene
+    const drawer = document.getElementById('modal-drawer');
+    const modalBody = document.getElementById('modal-body');
+    if (modalBody) {
+      modalBody.addEventListener('wheel', (e) => { e.stopPropagation(); }, { passive: true });
+      modalBody.addEventListener('touchmove', (e) => { e.stopPropagation(); }, { passive: true });
+    }
+    if (drawer) {
+      drawer.addEventListener('wheel', (e) => { e.stopPropagation(); }, { passive: true });
+    }
   }
 
   show(nodeData, allNodesMap) {
@@ -3673,10 +3726,14 @@ class SacredModalViewer {
       });
     });
 
+    const mb = document.getElementById('modal-body');
+    if (mb) mb.scrollTop = 0;
+
     this.container.classList.add('active');
     setTimeout(() => {
       document.getElementById('modal-backdrop').classList.add('visible');
       document.getElementById('modal-drawer').classList.add('open');
+      if (mb) mb.scrollTop = 0;
     }, 10);
   }
 
