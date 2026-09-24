@@ -1,0 +1,19 @@
+{
+  "name": "Age of the Gods",
+  "short_name": "AgeOfGods",
+  "description": "The Complete 3D Hindu Mythology Timeline, Cosmic Cycles & Sacred Genealogy Tree",
+  "start_url": "./index.html",
+  "display": "fullscreen",
+  "display_override": ["fullscreen", "standalone", "minimal-ui"],
+  "orientation": "any",
+  "background_color": "#010103",
+  "theme_color": "#010103",
+  "icons": [
+    {
+      "src": "assets/images/hero.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    }
+  ]
+}

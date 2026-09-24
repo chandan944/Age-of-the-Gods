@@ -1,0 +1,19 @@
+{
+  "name": "age-of-the-gods",
+  "version": "1.0.0",
+  "description": "The Complete 3D Hindu Mythology Timeline, Cosmic Cycles & Sacred Genealogy Tree",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "chrome": "start chrome --app=\"http://localhost:8080\" --start-fullscreen"
+  },
+  "keywords": [
+    "threejs",
+    "3d",
+    "timeline",
+    "hindu-mythology",
+    "genealogy"
+  ],
+  "author": "chandan944",
+  "license": "ISC"
+}

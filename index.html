@@ -5,6 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>Age of the Gods · The Complete 3D Hindu Mythology & Timeline Tree</title>
   <meta name="description" content="Age of the Gods: Explore the complete timeline and genealogy of Sanātana Dharma: from Brahman to the Pandavas, the Yugas, Dashavatara, cosmic cycles, and sacred teachings in an interactive 3D universe and tree architecture." />
+  <link rel="manifest" href="manifest.json" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#010103" />
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1519,6 +1524,14 @@ html, body {
           <span class="btn-text">परिचय</span>
         </button>
 
+        <!-- 12. Fullscreen Toggle (No URL bar) -->
+        <button class="action-btn" id="btn-fullscreen-toggle" title="पूर्ण स्क्रीन मोड (बिना URL बार के / F11)">
+          <svg id="fullscreen-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+          </svg>
+          <span id="fullscreen-btn-text" class="btn-text">पूर्ण स्क्रीन</span>
+        </button>
+
         <!-- Expandable Search Overlay Container -->
         <div class="search-container" id="search-container">
           <div class="search-bar">
@@ -2859,6 +2872,9 @@ const I18N = {
     tanpuraOn: 'तानपूरा: सक्रिय',
     tanpuraOff: 'तानपूरा: बंद',
     tanpuraTitle: 'शाश्वत ॐ तानपूरा ध्वनि',
+    fullscreenOn: 'पूर्ण स्क्रीन',
+    fullscreenOff: 'स्क्रीन छोड़ें',
+    fullscreenTitle: 'पूर्ण स्क्रीन मोड (बिना URL बार के / F11)',
     zoomIn: 'निकट लाएं',
     zoomOut: 'दूर ले जाएं',
     tooltipHint: 'विस्तृत आख्यान एवं दर्शन हेतु क्लिक करें',
@@ -2916,6 +2932,9 @@ const I18N = {
     tanpuraOn: 'Tanpura: Active',
     tanpuraOff: 'Tanpura: Off',
     tanpuraTitle: 'Toggle Ambient Tanpura Drone',
+    fullscreenOn: 'Full Screen',
+    fullscreenOff: 'Exit Full Screen',
+    fullscreenTitle: 'Toggle Fullscreen Mode (No URL bar / F11)',
     zoomIn: 'Zoom In',
     zoomOut: 'Zoom Out',
     tooltipHint: 'Click to inspect chronicle & artwork',
@@ -3689,10 +3708,85 @@ class SacredModalViewer {
       }
     });
 
+    // Fullscreen Helper Functions (Full Chrome window with no URL bar)
+    function requestAppFullscreen() {
+      const docEl = document.documentElement;
+      const req = docEl.requestFullscreen ||
+                  docEl.webkitRequestFullscreen ||
+                  docEl.mozRequestFullScreen ||
+                  docEl.msRequestFullscreen;
+      if (req && !document.fullscreenElement && !document.webkitFullscreenElement) {
+        try {
+          const p = req.call(docEl);
+          if (p && p.catch) p.catch(() => {});
+        } catch (e) {}
+      }
+    }
+
+    function exitAppFullscreen() {
+      const exit = document.exitFullscreen ||
+                   document.webkitExitFullscreen ||
+                   document.mozCancelFullScreen ||
+                   document.msExitFullscreen;
+      if (exit && (document.fullscreenElement || document.webkitFullscreenElement)) {
+        try {
+          const p = exit.call(document);
+          if (p && p.catch) p.catch(() => {});
+        } catch (e) {}
+      }
+    }
+
+    function toggleAppFullscreen() {
+      if (document.fullscreenElement || document.webkitFullscreenElement) {
+        exitAppFullscreen();
+      } else {
+        requestAppFullscreen();
+      }
+    }
+
+    const btnFullscreenToggle = document.getElementById('btn-fullscreen-toggle');
+    const fullscreenIcon = document.getElementById('fullscreen-icon');
+    const fullscreenBtnText = document.getElementById('fullscreen-btn-text');
+
+    function updateFullscreenUI() {
+      const isFS = !!(document.fullscreenElement || document.webkitFullscreenElement);
+      const isHi = window.currentLang === 'hi';
+      const dict = isHi ? I18N.hi : I18N.en;
+      if (fullscreenBtnText) {
+        fullscreenBtnText.textContent = isFS ? dict.fullscreenOff : dict.fullscreenOn;
+      }
+      if (btnFullscreenToggle) {
+        btnFullscreenToggle.title = dict.fullscreenTitle;
+      }
+      if (fullscreenIcon) {
+        if (isFS) {
+          fullscreenIcon.innerHTML = '<path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/>';
+        } else {
+          fullscreenIcon.innerHTML = '<path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>';
+        }
+      }
+    }
+
+    document.addEventListener('fullscreenchange', updateFullscreenUI);
+    document.addEventListener('webkitfullscreenchange', updateFullscreenUI);
+
+    if (btnFullscreenToggle) {
+      btnFullscreenToggle.addEventListener('click', toggleAppFullscreen);
+    }
+
+    // Auto-enter fullscreen on user's first interaction
+    const triggerAutoFullscreen = () => {
+      requestAppFullscreen();
+    };
+    window.addEventListener('click', triggerAutoFullscreen, { once: true, passive: true });
+    window.addEventListener('keydown', triggerAutoFullscreen, { once: true, passive: true });
+    window.addEventListener('touchend', triggerAutoFullscreen, { once: true, passive: true });
+
     // 4. Hero Screen Enter Handler
     const dismissHero = () => {
       heroScreen.classList.add('hidden');
       setTimeout(() => { heroScreen.style.display = 'none'; }, 1200);
+      requestAppFullscreen();
     };
     if (heroEnterBtn) heroEnterBtn.addEventListener('click', dismissHero);
     if (heroShowBtn) {
@@ -3885,6 +3979,7 @@ class SacredModalViewer {
         if (btnNextEl) { btnNextEl.textContent = dict.nextBtn; btnNextEl.title = dict.nextTitle; }
         if (btnStepBackEl) { btnStepBackEl.textContent = dict.rootBtn; const sb = document.getElementById('btn-step-back'); if (sb) sb.title = dict.rootTitle; }
         if (btnInspectEl) { btnInspectEl.textContent = dict.inspectBtn; const ic = document.getElementById('btn-inspect-current'); if (ic) ic.title = dict.inspectTitle; }
+        updateFullscreenUI();
 
         // Update breadcrumb and counter
         const node = TREE_DATA[currentNodeIndex];
