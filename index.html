@@ -934,6 +934,10 @@ html, body {
 
 .modal-drawer.open { transform: translateX(0); }
 
+.drawer-drag-handle-wrap {
+  display: none;
+}
+
 .drawer-drag-handle {
   display: none;
 }
@@ -968,20 +972,31 @@ html, body {
 }
 
 .drawer-close-btn {
-  background: transparent;
-  border: none;
-  color: var(--text-muted);
+  background: rgba(255, 119, 0, 0.18);
+  border: 1.5px solid rgba(255, 179, 71, 0.5);
+  color: #FFFFFF;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 6px;
+  padding: 8px;
   border-radius: 50%;
-  transition: all 0.2s ease;
+  transition: all 0.25s ease;
   flex-shrink: 0;
+  width: 38px;
+  height: 38px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.6);
+  pointer-events: auto !important;
+  z-index: 20;
 }
 
-.drawer-close-btn:hover { color: #fff; transform: rotate(90deg); }
+.drawer-close-btn:hover, .drawer-close-btn:active {
+  background: rgba(255, 119, 0, 0.45);
+  border-color: var(--saffron-bright);
+  color: #FFFFFF;
+  transform: rotate(90deg) scale(1.08);
+  box-shadow: 0 0 16px var(--saffron-glow);
+}
 
 .drawer-scroll-body {
   flex: 1 1 auto;
@@ -996,18 +1011,21 @@ html, body {
   pointer-events: auto;
 }
 
-/* Custom Visible Glowing Scrollbar for info card */
+/* Sleek custom scrollbar for info card */
+.drawer-scroll-body {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 119, 0, 0.5) rgba(0, 0, 0, 0.2);
+}
 .drawer-scroll-body::-webkit-scrollbar {
-  width: 7px;
+  width: 5px;
 }
 .drawer-scroll-body::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.4);
-  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
 }
 .drawer-scroll-body::-webkit-scrollbar-thumb {
-  background: var(--saffron-primary);
-  border-radius: 4px;
-  border: 1px solid rgba(255, 179, 71, 0.35);
+  background: rgba(255, 119, 0, 0.45);
+  border-radius: 3px;
 }
 .drawer-scroll-body::-webkit-scrollbar-thumb:hover {
   background: var(--saffron-bright);
@@ -1239,6 +1257,45 @@ html, body {
 .card-sanskrit { font-size: 11px; color: var(--saffron-bright); }
 .card-arrow { color: var(--text-muted); }
 
+/* Bottom Action Bar for Lore Drawer */
+.drawer-bottom-actions {
+  margin-top: 32px;
+  padding: 24px 0 36px 0;
+  display: flex;
+  justify-content: center;
+  border-top: 1px solid rgba(255, 119, 0, 0.2);
+}
+
+.drawer-bottom-close-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  max-width: 360px;
+  padding: 14px 24px;
+  background: linear-gradient(135deg, rgba(255, 119, 0, 0.22) 0%, rgba(212, 160, 23, 0.2) 100%);
+  border: 1.5px solid var(--saffron-primary);
+  border-radius: 12px;
+  color: #FFFFFF;
+  font-family: var(--font-royal);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.6);
+  -webkit-tap-highlight-color: transparent;
+  pointer-events: auto;
+}
+
+.drawer-bottom-close-btn:hover, .drawer-bottom-close-btn:active {
+  background: linear-gradient(135deg, rgba(255, 119, 0, 0.45) 0%, rgba(212, 160, 23, 0.35) 100%);
+  border-color: var(--saffron-bright);
+  box-shadow: 0 0 22px var(--saffron-glow);
+  transform: translateY(-2px);
+}
+
 /* TOOLTIP */
 .hover-tooltip {
   position: fixed;
@@ -1460,26 +1517,53 @@ html, body {
     transform: translateY(0) !important;
   }
 
+  .drawer-drag-handle-wrap {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    padding: 12px 0 4px 0;
+    cursor: pointer;
+    flex-shrink: 0 !important;
+    touch-action: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
   .drawer-drag-handle {
     display: block;
-    width: 44px;
-    height: 4px;
-    background: rgba(255, 255, 255, 0.35);
-    border-radius: 2px;
-    margin: 10px auto 2px auto;
+    width: 52px;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.45);
+    border-radius: 3px;
+    margin: 0 auto;
     flex-shrink: 0 !important;
+    cursor: pointer;
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.8);
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .drawer-drag-handle:active {
+    background: var(--saffron-bright);
+    width: 60px;
   }
 
   .drawer-header {
-    padding: 10px 16px;
+    padding: 8px 16px;
     flex-shrink: 0 !important;
   }
 
   .drawer-close-btn {
-    width: 42px;
-    height: 42px;
-    padding: 8px;
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
+    padding: 10px !important;
+    background: rgba(255, 119, 0, 0.25) !important;
+    border: 1.5px solid var(--saffron-bright) !important;
+    color: #FFFFFF !important;
+    box-shadow: 0 0 14px rgba(255, 119, 0, 0.4) !important;
     flex-shrink: 0 !important;
+    -webkit-tap-highlight-color: transparent;
   }
 
   .drawer-scroll-body {
@@ -1492,6 +1576,12 @@ html, body {
     overscroll-behavior-y: contain !important;
     padding: 14px 16px calc(36px + var(--safe-bottom)) 16px !important;
     pointer-events: auto !important;
+    scrollbar-width: none !important;
+  }
+
+  .drawer-scroll-body::-webkit-scrollbar {
+    display: none !important;
+    width: 0px !important;
   }
 
   .drawer-title {
@@ -3595,32 +3685,111 @@ class SacredModalViewer {
     this.container.innerHTML = `
       <div class="modal-backdrop" id="modal-backdrop"></div>
       <div class="modal-drawer" id="modal-drawer">
-        <div class="drawer-drag-handle" id="drawer-drag-handle"></div>
-        <div class="drawer-header">
+        <div class="drawer-drag-handle-wrap" id="drawer-drag-wrap" title="नीचे खींचें या टैप करें">
+          <div class="drawer-drag-handle" id="drawer-drag-handle"></div>
+        </div>
+        <div class="drawer-header" id="drawer-header">
           <div class="drawer-badges">
             <span class="drawer-cat-badge" id="modal-category"></span>
             <span class="drawer-epoch-badge" id="modal-epoch"></span>
           </div>
-          <button class="drawer-close-btn" id="modal-close-btn" title="Close Lore">${ICONS.close}</button>
+          <button class="drawer-close-btn" id="modal-close-btn" title="Close Lore" aria-label="Close Lore">${ICONS.close}</button>
         </div>
         <div class="drawer-scroll-body" id="modal-body"></div>
       </div>
     `;
 
-    document.getElementById('modal-close-btn').addEventListener('click', () => this.close());
-    document.getElementById('modal-backdrop').addEventListener('click', () => this.close());
-    const handle = document.getElementById('drawer-drag-handle');
-    if (handle) handle.addEventListener('click', () => this.close());
+    const closeBtn = document.getElementById('modal-close-btn');
+    const backdrop = document.getElementById('modal-backdrop');
+    const handleWrap = document.getElementById('drawer-drag-wrap');
+    const header = document.getElementById('drawer-header');
+    const drawerEl = document.getElementById('modal-drawer');
+
+    const handleClose = (e) => {
+      if (e) {
+        if (e.cancelable) e.preventDefault();
+        e.stopPropagation();
+      }
+      this.close();
+    };
+
+    if (closeBtn) {
+      closeBtn.addEventListener('click', handleClose);
+      closeBtn.addEventListener('touchend', handleClose);
+    }
+    if (backdrop) {
+      backdrop.addEventListener('click', handleClose);
+      backdrop.addEventListener('touchend', handleClose);
+    }
+    if (handleWrap) {
+      handleWrap.addEventListener('click', handleClose);
+      handleWrap.addEventListener('touchend', handleClose);
+    }
+
+    // Touch Swipe-Down on Mobile Bottom-Sheet to dismiss
+    let touchStartY = 0;
+    let touchCurY = 0;
+    let isSwipingDown = false;
+
+    const onSwipeStart = (e) => {
+      if (e.touches.length === 1) {
+        touchStartY = e.touches[0].clientY;
+        touchCurY = touchStartY;
+        isSwipingDown = true;
+      }
+    };
+
+    const onSwipeMove = (e) => {
+      if (!isSwipingDown || e.touches.length !== 1) return;
+      touchCurY = e.touches[0].clientY;
+      const dy = touchCurY - touchStartY;
+      if (dy > 0 && drawerEl) {
+        drawerEl.style.transform = `translateY(${dy}px)`;
+        drawerEl.style.transition = 'none';
+      }
+    };
+
+    const onSwipeEnd = (e) => {
+      if (!isSwipingDown) return;
+      isSwipingDown = false;
+      const dy = touchCurY - touchStartY;
+      if (drawerEl) {
+        drawerEl.style.transition = '';
+        if (dy > 65) {
+          drawerEl.style.transform = '';
+          this.close();
+        } else {
+          drawerEl.style.transform = '';
+        }
+      }
+    };
+
+    if (handleWrap) {
+      handleWrap.addEventListener('touchstart', onSwipeStart, { passive: true });
+      handleWrap.addEventListener('touchmove', onSwipeMove, { passive: true });
+      handleWrap.addEventListener('touchend', onSwipeEnd, { passive: true });
+    }
+    if (header) {
+      header.addEventListener('touchstart', onSwipeStart, { passive: true });
+      header.addEventListener('touchmove', onSwipeMove, { passive: true });
+      header.addEventListener('touchend', onSwipeEnd, { passive: true });
+    }
+
+    // Keyboard ESC key to close on desktop
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && this.container.classList.contains('active')) {
+        this.close();
+      }
+    });
 
     // Isolate scrolling inside modal so wheel and touch gestures smoothly scroll the card without affecting 3D scene
-    const drawer = document.getElementById('modal-drawer');
     const modalBody = document.getElementById('modal-body');
     if (modalBody) {
       modalBody.addEventListener('wheel', (e) => { e.stopPropagation(); }, { passive: true });
       modalBody.addEventListener('touchmove', (e) => { e.stopPropagation(); }, { passive: true });
     }
-    if (drawer) {
-      drawer.addEventListener('wheel', (e) => { e.stopPropagation(); }, { passive: true });
+    if (drawerEl) {
+      drawerEl.addEventListener('wheel', (e) => { e.stopPropagation(); }, { passive: true });
     }
   }
 
@@ -3707,6 +3876,15 @@ class SacredModalViewer {
 
     const enrichedQuoteHtml = quote ? `<div class="drawer-quote"><p>"${quote}"</p></div>` : '';
 
+    const bottomCloseHtml = `
+      <div class="drawer-bottom-actions">
+        <button class="drawer-bottom-close-btn" id="drawer-bottom-close-btn" type="button">
+          ${ICONS.close}
+          <span>${isHi ? 'आख्यान बंद करें (वापस ब्रह्माण्ड में)' : 'Close Lore (Return to Universe)'}</span>
+        </button>
+      </div>
+    `;
+
     document.getElementById('modal-body').innerHTML = `
       <h2 class="drawer-title">${title}</h2>
       ${nodeData.sanskrit ? `<div class="drawer-sanskrit">${nodeData.sanskrit}</div>` : ''}
@@ -3715,6 +3893,7 @@ class SacredModalViewer {
       <div class="drawer-summary">${summary}</div>
       <div class="drawer-content-text">${content}</div>
       ${childrenHtml}
+      ${bottomCloseHtml}
     `;
 
     // Hook child cards
@@ -3725,6 +3904,16 @@ class SacredModalViewer {
         if (child && this.onDrillDown) this.onDrillDown(child);
       });
     });
+
+    // Hook bottom close button
+    const bottomBtn = document.getElementById('drawer-bottom-close-btn');
+    if (bottomBtn) {
+      bottomBtn.addEventListener('click', () => this.close());
+      bottomBtn.addEventListener('touchend', (e) => {
+        if (e.cancelable) e.preventDefault();
+        this.close();
+      });
+    }
 
     const mb = document.getElementById('modal-body');
     if (mb) mb.scrollTop = 0;
@@ -3738,9 +3927,16 @@ class SacredModalViewer {
   }
 
   close() {
-    document.getElementById('modal-drawer').classList.remove('open');
-    document.getElementById('modal-backdrop').classList.remove('visible');
-    setTimeout(() => { this.container.classList.remove('active'); }, 300);
+    const drawerEl = document.getElementById('modal-drawer');
+    const backdropEl = document.getElementById('modal-backdrop');
+    if (drawerEl) {
+      drawerEl.style.transform = '';
+      drawerEl.classList.remove('open');
+    }
+    if (backdropEl) backdropEl.classList.remove('visible');
+    setTimeout(() => {
+      this.container.classList.remove('active');
+    }, 320);
   }
 }
 
