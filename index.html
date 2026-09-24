@@ -10,6 +10,10 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="theme-color" content="#010103" />
+
+  <!-- Preload mobile & desktop hero images for immediate non-blocking rendering -->
+  <link rel="preload" as="image" href="assets/images/hero_mobile.jpg" media="(max-width: 768px)" fetchpriority="high" />
+  <link rel="preload" as="image" href="assets/images/hero.jpg" media="(min-width: 769px)" fetchpriority="high" />
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -204,6 +208,16 @@ html, body {
   position: fixed;
   top: 0; left: 0; width: 100%; height: 100%;
   z-index: 1;
+  touch-action: none;
+  -webkit-touch-callout: none;
+  user-select: none;
+}
+
+#canvas-container canvas {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+  touch-action: none;
 }
 
 /* ===== UI OVERLAY LAYER ===== */
@@ -994,17 +1008,105 @@ html, body {
   margin: 16px 0 24px 0;
   border: 1px solid var(--saffron-primary);
   padding: 6px;
-  background: #000;
+  background: #040408;
   border-radius: 8px;
   box-shadow: 0 8px 25px rgba(0,0,0,0.8);
+  position: relative;
+  min-height: 220px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.drawer-artwork-skeleton {
+  position: absolute;
+  top: 6px; left: 6px; right: 6px; bottom: 32px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #07070d 0%, #151525 50%, #07070d 100%);
+  background-size: 200% 100%;
+  animation: artworkShimmer 1.8s infinite linear;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: var(--saffron-bright);
+  font-size: 11px;
+  font-family: var(--font-sans);
+  letter-spacing: 0.5px;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+  z-index: 2;
+}
+
+.sacred-spinner {
+  width: 28px;
+  height: 28px;
+  border: 2.5px solid rgba(255, 119, 0, 0.25);
+  border-top-color: var(--saffron-bright);
+  border-radius: 50%;
+  animation: spinnerRotate 0.9s infinite cubic-bezier(0.5, 0.1, 0.5, 0.9);
+}
+
+@keyframes spinnerRotate {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes artworkShimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
 }
 
 .drawer-image {
   width: 100%;
   height: auto;
+  min-height: 200px;
+  max-height: 380px;
+  object-fit: cover;
   display: block;
   border-radius: 4px;
   filter: contrast(1.05);
+  opacity: 0;
+  transition: opacity 0.35s ease-out;
+  position: relative;
+  z-index: 3;
+}
+
+.drawer-image.loaded {
+  opacity: 1;
+}
+
+.drawer-image.error-fallback {
+  opacity: 1;
+  background: #090912;
+  min-height: 140px;
+}
+
+.image-retry-box {
+  padding: 24px 16px;
+  text-align: center;
+  background: rgba(14, 14, 22, 0.9);
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  color: var(--text-white);
+}
+
+.image-retry-btn {
+  margin-top: 6px;
+  padding: 4px 14px;
+  border-radius: 12px;
+  background: rgba(255, 119, 0, 0.2);
+  border: 1px solid var(--saffron-bright);
+  color: var(--saffron-bright);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
 }
 
 .artwork-caption {
@@ -1741,6 +1843,7 @@ class SacredScene3D {
     const camLight = new THREE.PointLight(0xffeedd, 1.25, 2200);
     this.camera.add(camLight);
     this.scene.add(this.camera);
+    this.onResize();
 
     // Build JWST Deep Space Environment
     this.buildDeepSpaceDome();
@@ -1760,13 +1863,15 @@ class SacredScene3D {
     this.container.addEventListener('click', e => this.onClick(e));
     this.container.addEventListener('wheel', e => this.onWheel(e), { passive: false });
 
-    // Multi-touch controls
+    // Multi-touch controls with passive: false to prevent browser gesture conflicts
     this.container.addEventListener('touchstart', e => this.onTouchStart(e), { passive: false });
     this.container.addEventListener('touchmove', e => this.onTouchMove(e), { passive: false });
     this.container.addEventListener('touchend', e => this.onTouchEnd(e), { passive: false });
     this.container.addEventListener('touchcancel', () => {
       this.isDragging = false;
+      this.isPinching = false;
       this.initialPinchDistance = 0;
+      this.prevPinchDistance = 0;
       this.prevPinchCenter = null;
     });
 
@@ -2582,14 +2687,22 @@ class SacredScene3D {
   flyToNode(nodeData) {
     this.selectedNode = nodeData;
     this.targetLookAt.set(nodeData.x, nodeData.y, nodeData.z);
-    this.targetOrbitRadius = 150; // crisp intimate focus
+    const isMobile = (window.innerWidth < 768 || window.innerWidth < window.innerHeight);
+    this.targetOrbitRadius = isMobile ? 220 : 160; // Mobile comfortable intimate focus
     this.targetPhi = Math.PI * 0.44;
   }
 
   onResize() {
     const w = this.container.clientWidth || window.innerWidth;
     const h = this.container.clientHeight || window.innerHeight;
-    this.camera.aspect = w / h;
+    const aspect = w / h;
+    this.camera.aspect = aspect;
+    if (aspect < 1) {
+      // Mobile portrait mode: adjust FOV so horizontal FOV remains open and comfortable
+      this.camera.fov = Math.min(72, Math.max(50, 50 * Math.pow(1 / aspect, 0.45)));
+    } else {
+      this.camera.fov = 50;
+    }
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(w, h);
   }
@@ -2626,9 +2739,9 @@ class SacredScene3D {
       this.targetTheta -= dx * 0.0018;
       this.targetPhi = Math.max(0.08, Math.min(Math.PI - 0.08, this.targetPhi - dy * 0.0018));
 
-      this.targetLookAt.x = Math.max(-650, Math.min(650, this.targetLookAt.x));
-      this.targetLookAt.y = Math.max(-2350, Math.min(250, this.targetLookAt.y));
-      this.targetLookAt.z = Math.max(-100, Math.min(3400, this.targetLookAt.z));
+      this.targetLookAt.x = Math.max(-800, Math.min(800, this.targetLookAt.x));
+      this.targetLookAt.y = Math.max(-2500, Math.min(300, this.targetLookAt.y));
+      this.targetLookAt.z = Math.max(-200, Math.min(3600, this.targetLookAt.z));
 
       if (this.onScrollTravel) this.onScrollTravel(this.targetLookAt);
       this.prevMouse = { x: e.clientX, y: e.clientY };
@@ -2670,9 +2783,10 @@ class SacredScene3D {
   onWheel(e) {
     if (e.cancelable) e.preventDefault();
 
-    // 1. Zoom in/out at current location (Ctrl / Meta / Alt / pinch)
+    // 1. Zoom in/out at current location (Ctrl / Meta / Alt / pinch trackpad)
     if (e.ctrlKey || e.metaKey || e.altKey) {
-      this.targetOrbitRadius = Math.max(50, Math.min(1400, this.targetOrbitRadius + e.deltaY * 0.8));
+      const step = (this.orbitRadius * 0.0022 + 0.6) * e.deltaY;
+      this.targetOrbitRadius = Math.max(55, Math.min(3400, this.targetOrbitRadius + step));
       return;
     }
 
@@ -2682,15 +2796,15 @@ class SacredScene3D {
       const vRight = new THREE.Vector3();
       this.camera.matrixWorld.extractBasis(vRight, new THREE.Vector3(), new THREE.Vector3());
       this.targetLookAt.addScaledVector(vRight, hDelta * 0.75);
-      this.targetLookAt.x = Math.max(-650, Math.min(650, this.targetLookAt.x));
+      this.targetLookAt.x = Math.max(-800, Math.min(800, this.targetLookAt.x));
       if (this.onScrollTravel) this.onScrollTravel(this.targetLookAt);
       return;
     }
 
     // 3. Scroll Down & Up along the cosmic tree trajectory
     const travelSpeed = 0.95;
-    this.targetLookAt.y = Math.max(-2260, Math.min(180, this.targetLookAt.y - e.deltaY * 0.72 * travelSpeed));
-    this.targetLookAt.z = Math.max(-50, Math.min(3300, this.targetLookAt.z + e.deltaY * 1.02 * travelSpeed));
+    this.targetLookAt.y = Math.max(-2500, Math.min(250, this.targetLookAt.y - e.deltaY * 0.72 * travelSpeed));
+    this.targetLookAt.z = Math.max(-100, Math.min(3600, this.targetLookAt.z + e.deltaY * 1.02 * travelSpeed));
 
     if (this.onScrollTravel) {
       this.onScrollTravel(this.targetLookAt);
@@ -2701,25 +2815,33 @@ class SacredScene3D {
     if (e.touches.length === 1) {
       const t = e.touches[0];
       this.isDragging = true;
+      this.isPinching = false;
       this.hasTouchMoved = false;
       this.touchStartPos = { x: t.clientX, y: t.clientY };
       this.prevTouchPos = { x: t.clientX, y: t.clientY };
       this.touchStartTime = Date.now();
-    } else if (e.touches.length === 2) {
+    } else if (e.touches.length >= 2) {
       this.isDragging = false;
-      const dx = e.touches[0].clientX - e.touches[1].clientX;
-      const dy = e.touches[0].clientY - e.touches[1].clientY;
-      this.initialPinchDistance = Math.hypot(dx, dy);
+      this.isPinching = true;
+      this.hasTouchMoved = true;
+      const t0 = e.touches[0], t1 = e.touches[1];
+      const dx = t0.clientX - t1.clientX;
+      const dy = t0.clientY - t1.clientY;
+      this.initialPinchDistance = Math.hypot(dx, dy) || 1;
+      this.prevPinchDistance = this.initialPinchDistance;
       this.prevPinchCenter = {
-        x: (e.touches[0].clientX + e.touches[1].clientX) / 2,
-        y: (e.touches[0].clientY + e.touches[1].clientY) / 2
+        x: (t0.clientX + t1.clientX) / 2,
+        y: (t0.clientY + t1.clientY) / 2
       };
+      this.lastPinchTime = Date.now();
     }
   }
 
   onTouchMove(e) {
     if (e.cancelable) e.preventDefault();
-    if (e.touches.length === 1 && this.isDragging) {
+    if (e.touches.length === 1 && this.isDragging && !this.isPinching) {
+      if (Date.now() - (this.lastPinchTime || 0) < 180) return;
+
       const t = e.touches[0];
       const dx = t.clientX - this.prevTouchPos.x;
       const dy = t.clientY - this.prevTouchPos.y;
@@ -2735,27 +2857,32 @@ class SacredScene3D {
       this.targetLookAt.addScaledVector(vRight, -dx * panSpeed);
       this.targetLookAt.addScaledVector(vUp, dy * panSpeed);
 
-      this.targetTheta -= dx * 0.002;
-      this.targetPhi = Math.max(0.08, Math.min(Math.PI - 0.08, this.targetPhi - dy * 0.002));
+      this.targetTheta -= dx * 0.0022;
+      this.targetPhi = Math.max(0.08, Math.min(Math.PI - 0.08, this.targetPhi - dy * 0.0022));
 
-      this.targetLookAt.x = Math.max(-650, Math.min(650, this.targetLookAt.x));
-      this.targetLookAt.y = Math.max(-2350, Math.min(250, this.targetLookAt.y));
-      this.targetLookAt.z = Math.max(-100, Math.min(3400, this.targetLookAt.z));
+      this.targetLookAt.x = Math.max(-800, Math.min(800, this.targetLookAt.x));
+      this.targetLookAt.y = Math.max(-2500, Math.min(300, this.targetLookAt.y));
+      this.targetLookAt.z = Math.max(-200, Math.min(3600, this.targetLookAt.z));
 
       if (this.onScrollTravel) this.onScrollTravel(this.targetLookAt);
       this.prevTouchPos = { x: t.clientX, y: t.clientY };
-    } else if (e.touches.length === 2) {
+    } else if (e.touches.length >= 2) {
+      this.isPinching = true;
+      this.hasTouchMoved = true;
+      this.lastPinchTime = Date.now();
+
       const t0 = e.touches[0], t1 = e.touches[1];
       const dx = t0.clientX - t1.clientX;
       const dy = t0.clientY - t1.clientY;
-      const curDist = Math.hypot(dx, dy);
+      const curDist = Math.hypot(dx, dy) || 1;
 
-      // 1. Pinch zoom in and out at current location
-      if (this.initialPinchDistance > 0) {
-        const pinchDelta = (curDist - this.initialPinchDistance) * 1.5;
-        this.targetOrbitRadius = Math.max(50, Math.min(1400, this.targetOrbitRadius - pinchDelta));
+      // 1. Proportional logarithmic pinch zoom: pinch fingers closer = zoom out; spread fingers = zoom in
+      if (this.prevPinchDistance > 0 && Math.abs(curDist - this.prevPinchDistance) > 1) {
+        const pinchRatio = this.prevPinchDistance / curDist;
+        const zoomFactor = Math.pow(pinchRatio, 1.45);
+        this.targetOrbitRadius = Math.max(55, Math.min(3400, this.targetOrbitRadius * zoomFactor));
       }
-      this.initialPinchDistance = curDist;
+      this.prevPinchDistance = curDist;
 
       // 2. Two-finger Pan up/down/left/right across every location
       const curCenter = { x: (t0.clientX + t1.clientX) / 2, y: (t0.clientY + t1.clientY) / 2 };
@@ -2769,8 +2896,8 @@ class SacredScene3D {
         this.targetLookAt.addScaledVector(vRight, -cdx * panSpeed);
         this.targetLookAt.addScaledVector(vUp, cdy * panSpeed);
 
-        this.targetLookAt.y = Math.max(-2350, Math.min(250, this.targetLookAt.y));
-        this.targetLookAt.z = Math.max(-100, Math.min(3400, this.targetLookAt.z));
+        this.targetLookAt.y = Math.max(-2500, Math.min(300, this.targetLookAt.y));
+        this.targetLookAt.z = Math.max(-200, Math.min(3600, this.targetLookAt.z));
         if (this.onScrollTravel) this.onScrollTravel(this.targetLookAt);
       }
       this.prevPinchCenter = curCenter;
@@ -2778,21 +2905,44 @@ class SacredScene3D {
   }
 
   onTouchEnd(e) {
-    if (!this.hasTouchMoved && (Date.now() - this.touchStartTime < 350)) {
-      const rect = this.container.getBoundingClientRect();
-      this.mouse.x = ((this.touchStartPos.x - rect.left) / rect.width) * 2 - 1;
-      this.mouse.y = -((this.touchStartPos.y - rect.top) / rect.height) * 2 + 1;
-      this.raycaster.setFromCamera(this.mouse, this.camera);
-      const intersects = this.raycaster.intersectObjects(this.interactiveObjects);
-      if (intersects.length > 0) {
-        const obj = intersects[0].object;
-        const nd = obj.userData.nodeData;
-        if (this.onNodeClick) this.onNodeClick(nd);
+    if (e.touches.length === 0) {
+      if (!this.hasTouchMoved && !this.isPinching && (Date.now() - this.touchStartTime < 350)) {
+        // Double-tap on empty space to toggle between overview zoom and close zoom
+        const now = Date.now();
+        if (this.lastTapTime && (now - this.lastTapTime < 340)) {
+          if (this.targetOrbitRadius > 450) {
+            this.targetOrbitRadius = (window.innerWidth < 768) ? 220 : 160;
+          } else {
+            this.targetOrbitRadius = 1200; // Cosmic panoramic overview
+          }
+          this.lastTapTime = 0;
+          this.isDragging = false;
+          return;
+        }
+        this.lastTapTime = now;
+
+        const rect = this.container.getBoundingClientRect();
+        this.mouse.x = ((this.touchStartPos.x - rect.left) / rect.width) * 2 - 1;
+        this.mouse.y = -((this.touchStartPos.y - rect.top) / rect.height) * 2 + 1;
+        this.raycaster.setFromCamera(this.mouse, this.camera);
+        const intersects = this.raycaster.intersectObjects(this.interactiveObjects);
+        if (intersects.length > 0) {
+          const obj = intersects[0].object;
+          const nd = obj.userData.nodeData;
+          if (this.onNodeClick) this.onNodeClick(nd);
+        }
       }
+      this.isDragging = false;
+      this.isPinching = false;
+      this.initialPinchDistance = 0;
+      this.prevPinchDistance = 0;
+      this.prevPinchCenter = null;
+    } else if (e.touches.length === 1) {
+      this.isPinching = false;
+      this.isDragging = false;
+      this.prevTouchPos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      this.lastPinchTime = Date.now();
     }
-    this.isDragging = false;
-    this.initialPinchDistance = 0;
-    this.prevPinchCenter = null;
   }
 
   animate() {
@@ -3445,20 +3595,9 @@ class SacredModalViewer {
       modalLangBtnText.textContent = isHi ? 'English' : 'हिन्दी';
     }
 
-    let imageHtml = '';
-    if (nodeData.image) {
-      imageHtml = `
-        <div class="drawer-artwork-frame">
-          <img src="${nodeData.image}" alt="${nodeData.title}" class="drawer-image" />
-          <div class="artwork-caption">${nodeData.title} · Sacred Chronicle</div>
-        </div>
-      `;
-    }
-
-    let quoteHtml = '';
-    if (nodeData.quote) {
-      quoteHtml = `<div class="drawer-quote"><p>"${nodeData.quote}"</p></div>`;
-    }
+    const loadingText = isHi ? 'पवित्र दर्शन लोड हो रहा है...' : 'Loading sacred artwork...';
+    const retryText = isHi ? 'पुनः प्रयास करें' : 'Tap to retry';
+    const failedText = isHi ? 'चित्र लोड नहीं हो सका' : 'Artwork failed to load';
 
     let childrenHtml = '';
     if (nodeData.childrenIds && nodeData.childrenIds.length > 0 && allNodesMap) {
@@ -3493,8 +3632,22 @@ class SacredModalViewer {
 
     const captionText = isHi ? (title + ' · पवित्र आख्यान') : (title + ' · Sacred Chronicle');
     const enrichedImageHtml = nodeData.image ? `
-      <div class="drawer-artwork-frame">
-        <img src="${nodeData.image}" alt="${title}" class="drawer-image" />
+      <div class="drawer-artwork-frame" id="art-frame-${nodeData.id}">
+        <div class="drawer-artwork-skeleton" id="skeleton-${nodeData.id}">
+          <div class="sacred-spinner"></div>
+          <span>${loadingText}</span>
+        </div>
+        <img 
+          src="${nodeData.image}" 
+          alt="${title}" 
+          class="drawer-image" 
+          id="img-${nodeData.id}"
+          loading="eager" 
+          decoding="async"
+          fetchpriority="high"
+          onload="window.onSacredImageLoaded('${nodeData.id}')"
+          onerror="window.onSacredImageError('${nodeData.id}', '${nodeData.image}', '${retryText}', '${failedText}')"
+        />
         <div class="artwork-caption">${captionText}</div>
       </div>
     ` : '';
@@ -3534,11 +3687,96 @@ class SacredModalViewer {
   }
 }
 
+// ============================================================
+// MOBILE PERFORMANCE IMAGE CACHE & RECOVERY MANAGER
+// ============================================================
+const ImagePerformanceManager = {
+  cache: new Map(),
 
-  // ============================================================
-  // APP INITIALIZATION & MANUAL EVENT WIRING (No Auto-Timers)
-  // ============================================================
-  window.addEventListener('DOMContentLoaded', () => {
+  preload(url) {
+    if (!url || this.cache.has(url)) return;
+    const img = new Image();
+    img.decoding = 'async';
+    this.cache.set(url, { status: 'loading', img });
+    img.onload = () => {
+      this.cache.set(url, { status: 'loaded', img });
+    };
+    img.onerror = () => {
+      this.cache.delete(url);
+    };
+    img.src = url;
+  },
+
+  preloadNeighbors(currentIndex, data) {
+    if (!data || data.length === 0) return;
+    const offsets = [1, -1, 2, -2];
+    offsets.forEach(offset => {
+      const idx = currentIndex + offset;
+      if (idx >= 0 && idx < data.length && data[idx].image) {
+        if ('requestIdleCallback' in window) {
+          window.requestIdleCallback(() => this.preload(data[idx].image), { timeout: 1500 });
+        } else {
+          setTimeout(() => this.preload(data[idx].image), 120 * Math.abs(offset));
+        }
+      }
+    });
+  }
+};
+
+window.onSacredImageLoaded = (id) => {
+  const img = document.getElementById('img-' + id);
+  const skel = document.getElementById('skeleton-' + id);
+  if (img) img.classList.add('loaded');
+  if (skel) {
+    skel.style.opacity = '0';
+    setTimeout(() => { if (skel) skel.style.display = 'none'; }, 400);
+  }
+};
+
+window.onSacredImageError = (id, originalSrc, retryText, failedText) => {
+  const img = document.getElementById('img-' + id);
+  const skel = document.getElementById('skeleton-' + id);
+  const frame = document.getElementById('art-frame-' + id);
+  if (skel) skel.style.display = 'none';
+  if (img) {
+    img.style.display = 'none';
+    img.classList.add('error-fallback');
+  }
+  if (frame && !frame.querySelector('.image-retry-box')) {
+    const box = document.createElement('div');
+    box.className = 'image-retry-box';
+    box.innerHTML = `
+      <span style="font-size: 24px; color: var(--saffron-bright);">🕉️</span>
+      <span>${failedText}</span>
+      <button class="image-retry-btn" onclick="window.retrySacredImage('${id}', '${originalSrc}')">${retryText}</button>
+    `;
+    frame.insertBefore(box, frame.querySelector('.artwork-caption'));
+  }
+};
+
+window.retrySacredImage = (id, src) => {
+  const frame = document.getElementById('art-frame-' + id);
+  if (frame) {
+    const retryBox = frame.querySelector('.image-retry-box');
+    if (retryBox) retryBox.remove();
+  }
+  const skel = document.getElementById('skeleton-' + id);
+  if (skel) {
+    skel.style.display = 'flex';
+    skel.style.opacity = '1';
+  }
+  const img = document.getElementById('img-' + id);
+  if (img) {
+    img.style.display = 'block';
+    img.classList.remove('loaded', 'error-fallback');
+    img.src = src + (src.includes('?') ? '&' : '?') + 't=' + Date.now();
+  }
+};
+
+// ============================================================
+// APP INITIALIZATION & MANUAL EVENT WIRING (No Auto-Timers)
+// ============================================================
+window.addEventListener('DOMContentLoaded', () => {
     console.log("Initializing Sanatana Dharma 3D Universe and Tree Map...");
 
     const canvasContainer = document.getElementById('canvas-container');
@@ -3587,6 +3825,7 @@ class SacredModalViewer {
       const bc = document.getElementById('breadcrumb-current');
       if (bc) bc.textContent = prefix + nodeTitle + (node.sanskrit ? ' (' + node.sanskrit + ')' : '');
       scene3D.flyToNode(node);
+      ImagePerformanceManager.preloadNeighbors(idx, TREE_DATA);
       if (openModal) modal.show(node, ALL_NODES_MAP);
     }
 
@@ -4027,12 +4266,14 @@ class SacredModalViewer {
 
     if (btnZoomIn) {
       btnZoomIn.addEventListener('click', () => {
-        scene3D.targetOrbitRadius = Math.max(50, scene3D.targetOrbitRadius - 70);
+        // Smooth proportional zoom in (min 55)
+        scene3D.targetOrbitRadius = Math.max(55, scene3D.targetOrbitRadius * 0.7 - 25);
       });
     }
     if (btnZoomOut) {
       btnZoomOut.addEventListener('click', () => {
-        scene3D.targetOrbitRadius = Math.min(1400, scene3D.targetOrbitRadius + 70);
+        // Smooth proportional zoom out across macro cosmos (max 3400)
+        scene3D.targetOrbitRadius = Math.min(3400, scene3D.targetOrbitRadius * 1.45 + 85);
       });
     }
     if (btnStepBack) {
